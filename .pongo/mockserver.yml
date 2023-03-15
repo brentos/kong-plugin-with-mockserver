@@ -1,0 +1,11 @@
+version: '3.5'
+services:
+  mockserver:
+    image: mockserver/mockserver:mockserver-5.11.2
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/init.json
+      # MOCKSERVER_FORWARD_PROXY_TLS_X509_CERTIFICATES_TRUST_MANAGER_TYPE: ANY
+    volumes:
+      - "$PWD/.pongo/init.json:/config/init.json"
+    networks:
+      - ${NETWORK_NAME}

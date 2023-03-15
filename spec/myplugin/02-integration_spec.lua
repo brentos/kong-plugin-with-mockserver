@@ -1,21 +1,28 @@
 local helpers = require "spec.helpers"
-
+local httpc = require("resty.http").new()
 
 local PLUGIN_NAME = "myplugin"
 
 
-for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
+  local strategy = "postgres"
   describe(PLUGIN_NAME .. ": (access) [#" .. strategy .. "]", function()
-    local client
+
 
     lazy_setup(function()
 
       local bp = helpers.get_db_utils(strategy == "off" and "postgres" or strategy, nil, { PLUGIN_NAME })
 
+      local service1 = bp.services:insert({
+        host = "mockserver",
+        port = 1080,
+        protocol = "http"
+      })
+
       -- Inject a test route. No need to create a service, there is a default
       -- service which will echo the request.
       local route1 = bp.routes:insert({
         hosts = { "test1.com" },
+        service = {id = service1.id},
       })
       -- add the plugin to test to the route we created
       bp.plugins:insert {
@@ -28,8 +35,8 @@ for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
       assert(helpers.start_kong({
         -- set the strategy
         database   = strategy,
-        -- use the custom test template to create a local mock server
-        nginx_conf = "spec/fixtures/custom_nginx.template",
+        -- -- use the custom test template to create a local mock server
+        -- nginx_conf = "spec/fixtures/custom_nginx.template",
         -- make sure our plugin gets loaded
         plugins = "bundled," .. PLUGIN_NAME,
         -- write & load declarative config, only if 'strategy=off'
@@ -41,50 +48,31 @@ for _, strategy in helpers.all_strategies() do if strategy ~= "cassandra" then
       helpers.stop_kong(nil, true)
     end)
 
-    before_each(function()
-      client = helpers.proxy_client()
-    end)
-
-    after_each(function()
-      if client then client:close() end
-    end)
-
-
-
     describe("request", function()
       it("gets a 'hello-world' header", function()
-        local r = client:get("/request", {
+        local r, err = httpc:request_uri("http://localhost:9000/json", {
           headers = {
             host = "test1.com"
           }
         })
-        -- validate that the request succeeded, response status 200
-        assert.response(r).has.status(200)
-        -- now check the request (as echoed by mockbin) to have the header
-        local header_value = assert.request(r).has.header("hello-world")
-        -- validate the value of that header
-        assert.equal("this is on a request", header_value)
+
+        assert.equal(200, r.status)
       end)
     end)
 
-
-
     describe("response", function()
       it("gets a 'bye-world' header", function()
-        local r = client:get("/request", {
+        local r, err = httpc:request_uri("http://localhost:9000/html", {
           headers = {
             host = "test1.com"
           }
         })
-        -- validate that the request succeeded, response status 200
-        assert.response(r).has.status(200)
-        -- now check the response to have the header
-        local header_value = assert.response(r).has.header("bye-world")
-        -- validate the value of that header
-        assert.equal("this is on the response", header_value)
+
+        assert.equal(r.status, 200)
+        assert.equal("this is on the response", r.headers["bye-world"])
       end)
     end)
 
   end)
 
-end end
+

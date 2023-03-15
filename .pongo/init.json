@@ -1,0 +1,40 @@
+[
+    {
+      "httpRequest": {
+        "path": "/json",
+        "headers": [ {
+            "name":"hello-world",
+            "values": ["this is on a request"]
+      }]},
+      "httpResponse": {
+        "statusCode": 200,
+        "body": "{\"hello\":\"world\"}",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "values": [
+              "application/json"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "httpRequest": {
+        "path": "/html"
+      },
+      "httpResponse": {
+        "statusCode": 200,
+        "body": "<html><body><h1>Hello World!</h1></body></html>",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "values": [
+              "text/html"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+  
